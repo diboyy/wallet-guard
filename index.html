@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wallet Guard — pre-signing auditor</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem;color:#111}
+h1{font-size:1.4rem}label{display:block;margin:.6rem 0 .2rem;font-weight:600}
+input,textarea{width:100%;padding:.5rem;font:1rem monospace;box-sizing:border-box}
+button{margin-top:1rem;padding:.6rem 1.2rem;font-size:1rem;cursor:pointer}
+pre{background:#f4f4f4;padding:1rem;white-space:pre-wrap;word-break:break-word}
+.SAFE{color:#0a7a0a}.CAUTION{color:#a66a00}.BLOCK{color:#b00020}
+.small{color:#555;font-size:.9rem}
+</style></head><body>
+<h1>🛡️ Wallet Guard</h1>
+<p class="small">Paste a proposed transaction below. Wallet Guard decodes it and tells you whether it is safe to sign — <b>before</b> you sign it. Nothing here signs anything.</p>
+<p class="small">This demo runs entirely in your browser: the audit calls public BSC RPCs, Sourcify and BscScan directly from this page. No server, no keys, no account — and it never signs or sends anything.</p>
+<form id="f">
+<label>Chain ID <input name="chainId" value="56"></label>
+<label>To (contract address) <input name="to" placeholder="0x..."></label>
+<label>From (your address, optional) <input name="from" placeholder="0x..."></label>
+<label>Value (wei, optional) <input name="value" placeholder="0"></label>
+<label>Calldata (hex, optional) <textarea name="data" rows="3" placeholder="0x095ea7b3..."></textarea></label>
+<button type="submit">Audit this transaction</button>
+</form>
+<h2>Result</h2>
+<pre id="out">No audit yet. Try an unlimited approve: to = a token contract, data = 0x095ea7b3 + spender + ffff...ff.</pre>
+<script src="audit.js"></script>
+<script>
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = { chainId: Number(fd.get('chainId')) || 56, to: fd.get('to').trim(), from: fd.get('from').trim(), value: fd.get('value').trim() || '0', data: fd.get('data').trim() || '0x' };
+  const out = document.getElementById('out');
+  out.textContent = 'Auditing...';
+  try {
+    const j = await window.WalletGuard.audit(body);
+    out.innerHTML = '<span class="' + j.verdict + '"><b>' + j.verdict + '</b> (risk ' + j.score + '/100)</span>\n\n' + j.reasons.map(x => '• [' + x.level + '] ' + x.message).join('\n') + '\n\n' + j.recommendation;
+  } catch (err) { out.textContent = 'Error: ' + err.message; }
+});
+</script>
+</body></html>
